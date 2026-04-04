@@ -1,26 +1,26 @@
 name: Update Package Version
 
 on:
- schedule:
-   - cron: '0 0 * * *'  # Run every day at midnight
- workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # Run every day at midnight
+  workflow_dispatch:
 
 permissions:
- contents: write
- pull-requests: write
+  contents: write
+  pull-requests: write
 
 jobs:
- check-update:
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v4
+  check-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-     - name: Install Nix
-       uses: cachix/install-nix-action@v25
-       with:
-         github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Nix
+        uses: cachix/install-nix-action@v25
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-- name: Check for Updates
+      - name: Check for Updates
         id: check
         run: |
           # Store current version info
@@ -67,16 +67,16 @@ jobs:
             echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
           fi
 
-     - name: Create Pull Request
-       if: env.UPDATE_NEEDED == 'true'
-       uses: peter-evans/create-pull-request@v5
-       with:
-         token: ${{ secrets.PAT }}
-         commit-message: 'proton-cachyos: update to latest version'
-         title: 'Update proton-cachyos'
-         body: |
-           Updated proton-cachyos to latest version from CachyOS mirror.
+      - name: Create Pull Request
+        if: env.UPDATE_NEEDED == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: 'proton-cachyos: update to latest version'
+          title: 'Update proton-cachyos'
+          body: |
+            Updated proton-cachyos to latest version from CachyOS mirror.
 
-           This PR was created automatically by the update workflow.
-         branch: update-proton-cachyos
-         delete-branch: true
+            This PR was created automatically by the update workflow.
+          branch: update-proton-cachyos
+          delete-branch: true
