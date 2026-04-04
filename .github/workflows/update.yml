@@ -20,52 +20,52 @@ jobs:
        with:
          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-     - name: Check for Updates
-       id: check
-       run: |
-         # Store current version info
-         OLD_CONTENT=$(cat versions.json)
+- name: Check for Updates
+        id: check
+        run: |
+          # Store current version info
+          OLD_CONTENT=$(cat versions.json)
 
-         # Get latest version and properly encode the URL
-         LATEST=$(curl -s 'https://mirror.cachyos.org/repo/x86_64_v3/cachyos-v3/' | grep -Po 'proton-cachyos-1:\d+\.\d+\.\d+-\d+-x86_64_v3\.pkg\.tar\.zst' | sort -V | tail -n1)
-         ENCODED_LATEST=${LATEST//:/%3A}
-         
-         BASE=$(echo $LATEST | grep -Po '(?<=:)\d+\.\d+(?=\.)')
-         RELEASE=$(echo $LATEST | grep -Po '\d+(?=-\d+-x86_64)')
+          # Get latest version from CachyOS mirror
+          LATEST=$(curl -s 'https://mirror.cachyos.org/repo/x86_64/cachyos/' | grep -Po 'proton-cachyos-1:\d+\.\d+\.\d+-1-x86_64\.pkg\.tar\.zst' | sort -V | tail -n1)
+          ENCODED_LATEST=${LATEST//:/%3A}
+          
+          BASE=$(echo $LATEST | grep -Po '(?<=:)\d+\.\d+(?=\.)')
+          RELEASE=$(echo $LATEST | grep -Po '\d+(?=-1-x86_64)')
 
-         # Download file to temporary location
-         TEMP_FILE=$(mktemp)
-         curl -L "https://mirror.cachyos.org/repo/x86_64_v3/cachyos-v3/${ENCODED_LATEST}" -o "$TEMP_FILE"
+          # Download file to temporary location
+          TEMP_FILE=$(mktemp)
+          curl -L "https://mirror.cachyos.org/repo/x86_64/cachyos/${ENCODED_LATEST}" -o "$TEMP_FILE"
 
-         # Get hash of the downloaded file
-         HASH=$(nix hash file --base64 --type sha256 "$TEMP_FILE")
-         rm "$TEMP_FILE"
+          # Get hash of the downloaded file
+          HASH=$(nix hash file --base64 --type sha256 "$TEMP_FILE")
+          rm "$TEMP_FILE"
 
-         # Debug Variables
-         echo "LATEST: $LATEST"
-         echo "ENCODED_LATEST: $ENCODED_LATEST"
-         echo "BASE: $BASE"
-         echo "RELEASE: $RELEASE"
-         echo "HASH: $HASH"
+          # Debug Variables
+          echo "LATEST: $LATEST"
+          echo "ENCODED_LATEST: $ENCODED_LATEST"
+          echo "BASE: $BASE"
+          echo "RELEASE: $RELEASE"
+          echo "HASH: $HASH"
 
-         # Create new versions.json content
-         NEW_CONTENT=$(cat <<EOF
-         {
-           "base": "$BASE",
-           "release": "$RELEASE",
-           "hash": "sha256-$HASH"
-         }
-         EOF
-         )
+          # Create new versions.json content
+          NEW_CONTENT=$(cat <<EOF
+          {
+            "base": "$BASE",
+            "release": "$RELEASE",
+            "hash": "sha256-$HASH"
+          }
+          EOF
+          )
 
-         # Compare old and new content
-         if [ "$OLD_CONTENT" = "$NEW_CONTENT" ]; then
-           echo "No updates available"
-           echo "UPDATE_NEEDED=false" >> $GITHUB_ENV
-         else
-           echo "$NEW_CONTENT" > versions.json
-           echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
-         fi
+          # Compare old and new content
+          if [ "$OLD_CONTENT" = "$NEW_CONTENT" ]; then
+            echo "No updates available"
+            echo "UPDATE_NEEDED=false" >> $GITHUB_ENV
+          else
+            echo "$NEW_CONTENT" > versions.json
+            echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
+          fi
 
      - name: Create Pull Request
        if: env.UPDATE_NEEDED == 'true'
