@@ -71,7 +71,7 @@ jobs:
         if: env.UPDATE_NEEDED == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'proton-cachyos: update to latest version'
           title: 'Update proton-cachyos'
           body: |
