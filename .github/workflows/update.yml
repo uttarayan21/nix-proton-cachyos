@@ -27,15 +27,20 @@ jobs:
           OLD_CONTENT=$(cat versions.json)
 
           # Get latest version from CachyOS mirror
-          LATEST=$(curl -s 'https://mirror.cachyos.org/repo/x86_64/cachyos/' | grep -Po 'proton-cachyos-1:\d+\.\d+\.\d+-1-x86_64\.pkg\.tar\.zst' | sort -V | tail -n1)
-          ENCODED_LATEST=${LATEST//:/%3A}
+          ENCODED_LATEST=$(curl -fsSL 'https://mirror.cachyos.org/repo/x86_64/cachyos/' | grep -Po 'proton-cachyos-1%3A\d+\.\d+\.\d+-\d+-x86_64\.pkg\.tar\.zst' | sort -V | tail -n1)
+          if [ -z "$ENCODED_LATEST" ]; then
+            echo "::error::No proton-cachyos package found in CachyOS mirror"
+            exit 1
+          fi
+          LATEST=${ENCODED_LATEST//%3A/:}
           
-          BASE=$(echo $LATEST | grep -Po '(?<=:)\d+\.\d+(?=\.)')
-          RELEASE=$(echo $LATEST | grep -Po '\d+(?=-1-x86_64)')
+          BASE=$(echo "$LATEST" | grep -Po '(?<=:)\d+\.\d+(?=\.)')
+          RELEASE=$(echo "$LATEST" | grep -Po '(?<=\.)\d+(?=-\d+-x86_64)')
+          PKGREL=$(echo "$LATEST" | grep -Po '(?<=-)\d+(?=-x86_64)')
 
           # Download file to temporary location
           TEMP_FILE=$(mktemp)
-          curl -L "https://mirror.cachyos.org/repo/x86_64/cachyos/${ENCODED_LATEST}" -o "$TEMP_FILE"
+          curl -fsSL "https://mirror.cachyos.org/repo/x86_64/cachyos/${ENCODED_LATEST}" -o "$TEMP_FILE"
 
           # Get hash of the downloaded file
           HASH=$(nix hash file --base64 --type sha256 "$TEMP_FILE")
@@ -46,17 +51,11 @@ jobs:
           echo "ENCODED_LATEST: $ENCODED_LATEST"
           echo "BASE: $BASE"
           echo "RELEASE: $RELEASE"
+          echo "PKGREL: $PKGREL"
           echo "HASH: $HASH"
 
           # Create new versions.json content
-          NEW_CONTENT=$(cat <<EOF
-          {
-            "base": "$BASE",
-            "release": "$RELEASE",
-            "hash": "sha256-$HASH"
-          }
-          EOF
-          )
+          NEW_CONTENT=$(printf '{\n  "base": "%s",\n  "release": "%s",\n  "pkgrel": "%s",\n  "hash": "sha256-%s"\n}\n' "$BASE" "$RELEASE" "$PKGREL" "$HASH")
 
           # Compare old and new content
           if [ "$OLD_CONTENT" = "$NEW_CONTENT" ]; then
